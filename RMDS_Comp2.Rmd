@@ -11,6 +11,67 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 prop <- read.csv("full_data.csv")
-View(prop)
+summary(prop)
 ```
 
+```{r}
+#prop$cityid <- as.factor(prop$cityid)
+#prop$countyid <- as.factor(prop$countyid)
+#prop$homeType <- as.factor(prop$homeType)
+#prop$zipcode <- as.factor(prop$zipcode)
+#prop$tax.year <- as.factor(prop$tax.year)
+#prop$year_built <- as.factor(prop$year_built)
+```
+
+```{r}
+factor <- function(data,index)
+{
+  for (i in index)
+    data[,i]=as.factor(data[,i])
+  data
+}
+ind <- c(1,3:5,7,10:11,14,22)
+prop<- factor(prop,ind)
+summary(prop)
+```
+
+```{r}
+# Acres and  lot size
+stnum <- function(string){
+if (string =="")
+  return(NA)
+  else{
+xnum <- unlist(regmatches(string, gregexpr("[[:digit:]]+", string)) ) # Apply gregexpr & regmatches
+l=1
+num=""
+while (l<=length(xnum)){
+  num=paste0(num,xnum[l])
+  l=l+1
+}
+return(num)
+}}
+
+stnum2 <- function(str){
+  if(str =="")
+    return(NA)
+  else{
+    sti <- unlist(strsplit(str," "))
+    if (sti[2]=="Acres")
+      {
+      num= as.numeric(sti[1])
+      return(num*43560.04)
+      }
+    else
+      return(stnum(str))
+  } 
+}
+
+for (i in 1:dim(prop)[1]){
+  print(i)
+  prop$hoa[i] = stnum(prop$hoa[i])
+  prop$lotSize[i] = stnum2(prop$lotSize[i])
+  prop$livingArea[i] = stnum(prop$livingArea[i])
+}
+prop$hoa <- as.numeric(prop$hoa)
+prop$livingArea = as.numeric(prop$livingArea)
+```
