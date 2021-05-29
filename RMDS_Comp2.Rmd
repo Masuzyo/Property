@@ -30,10 +30,20 @@ factor <- function(data,index)
     data[,i]=as.factor(data[,i])
   data
 }
-ind <- c(1,3:5,7,10:11,14,22)
+ind <- c(1,3:5,7,11,14,22)
 prop<- factor(prop,ind)
 summary(prop)
+prop1 <- prop[-(which(prop$homeType=='HOME_TYPE_UNKNOWN')),]
+prop1$homeType <- droplevels(prop1$homeType)
+prop1$year_built[which(prop1$year_built==0)]=NA
+summary(prop1$year_built)
+prop1 <- prop1[,-c(2,11,14,15,16,21)]#zpid(unique),parcelNumber(),architecturalStyle(7000 missing),hoafee(9000missing),hasprivatepool,furnished
+
 ```
+has pool, has cooling pending
+Heating needs to be worked on
+unknown house type =8 drop 
+trim outsize, livingArea entries
 
 ```{r}
 # Acres and  lot size
@@ -58,8 +68,11 @@ stnum2 <- function(str){
     sti <- unlist(strsplit(str," "))
     if (sti[2]=="Acres")
       {
-      num= as.numeric(sti[1])
-      return(num*43560.04)
+       sp2 <- unlist(strsplit(sti[1],","))
+       if (length(sp2)>1)
+         sti[1]=paste0(sp2[1],sp2[2])
+       num= as.numeric(sti[1])
+       return(num*43560.04) 
       }
     else
       return(stnum(str))
@@ -67,11 +80,62 @@ stnum2 <- function(str){
 }
 
 for (i in 1:dim(prop)[1]){
-  print(i)
   prop$hoa[i] = stnum(prop$hoa[i])
   prop$lotSize[i] = stnum2(prop$lotSize[i])
   prop$livingArea[i] = stnum(prop$livingArea[i])
 }
 prop$hoa <- as.numeric(prop$hoa)
 prop$livingArea = as.numeric(prop$livingArea)
+prop$lotSize = as.numeric(prop$lotSize)
+summary(prop)
 ```
+
+```{r}
+library(GGally)
+hist(prop$price)
+boxplot(prop$price)
+summary(prop$price)
+ggpairs(prop[,c(6:10,25)])
+```
+
+##Firt a Regression Model
+```{r}
+reg <- lm(price ~., prop[,-2])
+aov(reg)
+```
+
+# Best subset selection
+```{r}
+library(leaps)
+regfit.full=regsubsets(price ~.,data=prop[,-2] ,nvmax=19,really.big=T)
+reg.summary=summary(regfit.full)
+```
+# Lasso
+```{r}
+x <- prop[,c(-2,-25)]
+y <- prop[,25] 
+library(glmnet)
+lasso=cv.glmnet(x,y,alpha=1)
+plot(lasso)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
